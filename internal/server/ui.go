@@ -57,7 +57,7 @@ input[type=text]{background:var(--bg);border:1px solid var(--bg3);color:var(--cr
 <label style="font-size:.65rem;display:flex;align-items:center;gap:.3rem"><input type="checkbox" id="autoRefresh" checked onchange="toggleAuto()"> Live</label>
 </div>
 </div>
-<div class="main">
+<div class="main"><div id="upgrade-banner" style="display:none;background:#241e18;border:1px solid #8b3d1a;border-left:3px solid #c45d2c;padding:.6rem 1rem;font-size:.78rem;color:#bfb5a3;margin-bottom:.8rem"><strong style="color:#f0e6d3">Free tier</strong> — 10 items max. <a href="https://stockyard.dev/quarry/" target="_blank" style="color:#e8753a">Upgrade to Pro →</a></div>
 <div class="overview" id="overview"></div>
 <div id="savedBar" style="margin-bottom:.5rem"></div>
 <div class="toolbar">
@@ -154,4 +154,5 @@ function startAuto(){stopAuto();autoTimer=setInterval(()=>{loadLogs()},5000)}
 function stopAuto(){if(autoTimer){clearInterval(autoTimer);autoTimer=null}}
 
 init();
+fetch('/api/tier').then(r=>r.json()).then(j=>{if(j.tier==='free'){var b=document.getElementById('upgrade-banner');if(b)b.style.display='block'}}).catch(()=>{var b=document.getElementById('upgrade-banner');if(b)b.style.display='block'});
 </script></body></html>`
