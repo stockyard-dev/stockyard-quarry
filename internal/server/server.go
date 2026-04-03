@@ -10,12 +10,13 @@ import (
 )
 
 type Server struct {
-	db  *store.DB
-	mux *http.ServeMux
+	db     *store.DB
+	mux    *http.ServeMux
+	limits Limits
 }
 
-func New(db *store.DB) *Server {
-	s := &Server{db: db, mux: http.NewServeMux()}
+func New(db *store.DB, limits Limits) *Server {
+	s := &Server{db: db, mux: http.NewServeMux(), limits: limits}
 
 	// Ingest
 	s.mux.HandleFunc("POST /api/ingest", s.ingest)
