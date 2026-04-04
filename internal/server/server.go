@@ -46,7 +46,7 @@ func New(db *store.DB, limits Limits) *Server {
 	s.mux.HandleFunc("GET /ui", s.dashboard)
 	s.mux.HandleFunc("GET /ui/", s.dashboard)
 	s.mux.HandleFunc("GET /", s.root)
-s.mux.HandleFunc("GET /api/tier",func(w http.ResponseWriter,r *http.Request){wj(w,200,map[string]any{"tier":s.limits.Tier,"upgrade_url":"https://stockyard.dev/quarry/"})})
+s.mux.HandleFunc("GET /api/tier",func(w http.ResponseWriter,r *http.Request){writeJSON(w,200,map[string]any{"tier":s.limits.Tier,"upgrade_url":"https://stockyard.dev/quarry/"})})
 
 	return s
 }
