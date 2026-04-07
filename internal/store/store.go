@@ -24,9 +24,9 @@ type LogEntry struct {
 }
 
 type Source struct {
-	Name      string `json:"name"`
-	Count     int    `json:"count"`
-	LastSeen  string `json:"last_seen"`
+	Name     string `json:"name"`
+	Count    int    `json:"count"`
+	LastSeen string `json:"last_seen"`
 }
 
 type SavedSearch struct {
@@ -38,13 +38,13 @@ type SavedSearch struct {
 }
 
 type LogFilter struct {
-	Source  string
-	Level   string
-	Search  string
-	After   string // RFC3339
-	Before  string // RFC3339
-	Limit   int
-	Offset  int
+	Source string
+	Level  string
+	Search string
+	After  string // RFC3339
+	Before string // RFC3339
+	Limit  int
+	Offset int
 }
 
 func Open(dataDir string) (*DB, error) {
@@ -81,6 +81,7 @@ func Open(dataDir string) (*DB, error) {
 			return nil, fmt.Errorf("migrate: %w", err)
 		}
 	}
+	db.Exec(`CREATE TABLE IF NOT EXISTS extras(resource TEXT NOT NULL,record_id TEXT NOT NULL,data TEXT NOT NULL DEFAULT '{}',PRIMARY KEY(resource, record_id))`)
 	return &DB{db: db}, nil
 }
 
@@ -288,11 +289,11 @@ func (d *DB) DeleteSavedSearch(id string) error {
 // ── Stats ──
 
 type Stats struct {
-	TotalLogs    int            `json:"total_logs"`
-	Sources      int            `json:"sources"`
-	ByLevel      map[string]int `json:"by_level"`
-	Last24h      int            `json:"last_24h"`
-	SavedSearches int           `json:"saved_searches"`
+	TotalLogs     int            `json:"total_logs"`
+	Sources       int            `json:"sources"`
+	ByLevel       map[string]int `json:"by_level"`
+	Last24h       int            `json:"last_24h"`
+	SavedSearches int            `json:"saved_searches"`
 }
 
 func (d *DB) Stats() Stats {
@@ -304,4 +305,56 @@ func (d *DB) Stats() Stats {
 	d.db.QueryRow(`SELECT COUNT(*) FROM saved_searches`).Scan(&s.SavedSearches)
 	s.ByLevel = d.LevelCounts()
 	return s
+}
+
+// ─── Extras: generic key-value storage for personalization custom fields ───
+
+func (d *DB) GetExtras(resource, recordID string) string {
+	var data string
+	err := d.db.QueryRow(
+		`SELECT data FROM extras WHERE resource=? AND record_id=?`,
+		resource, recordID,
+	).Scan(&data)
+	if err != nil || data == "" {
+		return "{}"
+	}
+	return data
+}
+
+func (d *DB) SetExtras(resource, recordID, data string) error {
+	if data == "" {
+		data = "{}"
+	}
+	_, err := d.db.Exec(
+		`INSERT INTO extras(resource, record_id, data) VALUES(?, ?, ?)
+		 ON CONFLICT(resource, record_id) DO UPDATE SET data=excluded.data`,
+		resource, recordID, data,
+	)
+	return err
+}
+
+func (d *DB) DeleteExtras(resource, recordID string) error {
+	_, err := d.db.Exec(
+		`DELETE FROM extras WHERE resource=? AND record_id=?`,
+		resource, recordID,
+	)
+	return err
+}
+
+func (d *DB) AllExtras(resource string) map[string]string {
+	out := make(map[string]string)
+	rows, _ := d.db.Query(
+		`SELECT record_id, data FROM extras WHERE resource=?`,
+		resource,
+	)
+	if rows == nil {
+		return out
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, data string
+		rows.Scan(&id, &data)
+		out[id] = data
+	}
+	return out
 }
